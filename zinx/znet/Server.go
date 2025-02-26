@@ -24,6 +24,7 @@ func (s *Server) Start() {
 	if err != nil {
 		fmt.Println("ListenTCP err:", err)
 	}
+	var cid uint32 = 0
 	// 循环处理连接
 	for {
 		// 阻塞等待，获取连接
@@ -31,39 +32,23 @@ func (s *Server) Start() {
 		if err != nil {
 			fmt.Println("AcceptTCP err:", err)
 		}
-		go func() {
-			defer conn.Close()
-			for {
-				// buffer 用于存放数据
-				buff := make([]byte, 512)
-				// 获取客户端发送的数据 nmsg表示数据的长度
-				nmsg, err := conn.Read(buff)
-				if err != nil {
-					fmt.Println("Read err:", err)
-					break
-				}
-				// 打印数据
-				fmt.Println(string(buff[:nmsg]))
-				// 处理数据
-				newbuff := handler(buff[:nmsg])
-				// 回写处理过后的数据
-				_, err = conn.Write(newbuff)
-				if err != nil {
-					fmt.Println("Write err:", err)
-				}
-			}
-		}()
+		delaConn := NewConnection(conn, cid, CallBackToClient)
+		cid++
+		go delaConn.Start()
 	}
 }
-func handler(buff []byte) []byte {
-	if string(buff[0]) == "1" && string(buff[1]) == "." {
-		buff = buff[2:]
-	}
 
-	//if string(buff[0]) == "2" && string(buff[1]) == "." {
-	////	stopChan <- context.
-	////}
-	return buff
+func CallBackToClient(conn *net.TCPConn, buff []byte, n int) error {
+	// 判断buff长度是否正好为5且前五个字符是否为"hello"
+	if len(buff) > 5 && string(buff[:5]) == "hello" {
+		buff = []byte("hello client!")
+	}
+	_, err := conn.Write(buff)
+	if err != nil {
+		fmt.Println("Write err:", err)
+		return err
+	}
+	return nil
 }
 func (s *Server) Stop() {
 

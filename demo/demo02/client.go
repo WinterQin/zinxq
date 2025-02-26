@@ -15,8 +15,8 @@ func main() {
 	}
 	defer conn.Close()
 
-	for {
-		_, err = conn.Write([]byte("Hello, server!"))
+	for i := 0; i < 5; i++ {
+		_, err = conn.Write([]byte("hello, server!"))
 		if err != nil {
 			fmt.Println("Write err:", err)
 			return
