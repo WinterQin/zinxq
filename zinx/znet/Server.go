@@ -3,6 +3,7 @@ package znet
 import (
 	"fmt"
 	"net"
+	"zinxq/zinx/utils"
 	"zinxq/zinx/ziface"
 )
 
@@ -11,9 +12,27 @@ type Server struct {
 	IPVersion string
 	IP        string
 	Port      int
+	Router    ziface.IRouter
+}
+
+func InitServer() ziface.IServer {
+	utils.Config.Reload()
+	server := &Server{
+		Name:      utils.Config.Name,
+		IPVersion: utils.Config.IPVersion,
+		IP:        utils.Config.Host,
+		Port:      utils.Config.TcpPort,
+		Router:    nil,
+	}
+	return server
 }
 
 func (s *Server) Start() {
+	fmt.Printf("[START] Server name: %s,listenner at Host: %s:%d is starting\n", s.Name, s.IP, s.Port)
+	fmt.Printf("[Zinxq] IPVersion: %s, MaxConnectionNum: %d,  MaxPacketSize: %d\n",
+		utils.Config.IPVersion,
+		utils.Config.MaxConnectionNum,
+		utils.Config.MaxPacketSize)
 	// 解析地址
 	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", s.IP, s.Port))
 	if err != nil {
@@ -32,24 +51,12 @@ func (s *Server) Start() {
 		if err != nil {
 			fmt.Println("AcceptTCP err:", err)
 		}
-		delaConn := NewConnection(conn, cid, CallBackToClient)
+		delaConn := NewConnection(conn, cid, s.Router)
 		cid++
 		go delaConn.Start()
 	}
 }
 
-func CallBackToClient(conn *net.TCPConn, buff []byte, n int) error {
-	// 判断buff长度是否正好为5且前五个字符是否为"hello"
-	if len(buff) > 5 && string(buff[:5]) == "hello" {
-		buff = []byte("hello client!")
-	}
-	_, err := conn.Write(buff)
-	if err != nil {
-		fmt.Println("Write err:", err)
-		return err
-	}
-	return nil
-}
 func (s *Server) Stop() {
 
 }
@@ -63,12 +70,7 @@ func (s *Server) RunServer() {
 	select {}
 }
 
-func InitServer(name string, ipv string, ip string, port int) ziface.IServer {
-	server := &Server{
-		Name:      name,
-		IPVersion: ipv,
-		IP:        ip,
-		Port:      port,
-	}
-	return server
+func (s *Server) AddRouter(router ziface.IRouter) {
+	s.Router = router
+	fmt.Println("AddRouter")
 }

@@ -14,24 +14,24 @@ type Connection struct {
 	//链接的ID
 	ConnID uint32
 
-	//链接处理方法
-	HandlerApi ziface.HandleFunc
-
 	//告知结束的channel
 	ExitChan chan bool
 
 	//链接的状态
 	isClosed bool
+
+	// Router
+	Router ziface.IRouter
 }
 
 // NewConnection 初始化链接模块的方法
-func NewConnection(conn *net.TCPConn, connid uint32, callbackApi ziface.HandleFunc) *Connection {
+func NewConnection(conn *net.TCPConn, connid uint32, router ziface.IRouter) *Connection {
 	c := &Connection{
-		Conn:       conn,
-		ConnID:     connid,
-		HandlerApi: callbackApi,
-		ExitChan:   make(chan bool, 1),
-		isClosed:   false,
+		Conn:     conn,
+		ConnID:   connid,
+		ExitChan: make(chan bool, 1),
+		isClosed: false,
+		Router:   router,
 	}
 	return c
 }
@@ -52,14 +52,24 @@ func (c *Connection) startReader() {
 			}
 			fmt.Println("recv buf err:", err)
 			continue
-
 		}
 
-		//调用当前链接所绑定的HandleApi
-		if err := c.HandlerApi(c.Conn, buf, cnt); err != nil {
-			fmt.Println("ConnID is :", c.ConnID, "handler err:", err)
-			break
+		req := Request{
+			conn: c,
+			data: buf[:cnt],
 		}
+
+		go func(req ziface.IRequest) {
+			c.Router.PreHandle(req)
+			c.Router.CurHandle(req)
+			c.Router.PostHandle(req)
+		}(&req)
+
+		////调用当前链接所绑定的HandleApi
+		//if err := c.HandlerApi(c.Conn, buf, cnt); err != nil {
+		//	fmt.Println("ConnID is :", c.ConnID, "handler err:", err)
+		//	break
+		//}
 	}
 }
 

@@ -1,0 +1,8 @@
+{
+  "Name": "Winter_Server",
+  "Host": "127.0.0.1",
+  "TcpPort": 8999,
+  "IPVersion": "tcp4",
+  "MaxConnectionNum": 128,
+  "MaxPacketSize": 1024
+}
