@@ -19,8 +19,8 @@ func NewMsgHandle() *MsgHandle {
 func (mhd *MsgHandle) DoMsgHandler(request ziface.IRequest) {
 	handler, ok := mhd.Apis[request.GetMsgID()]
 	if !ok {
-		fmt.Println("api msgId = ", request.GetMsgID(), " is not FOUND!")
-		request.GetConnection().Send(NotFoundMessagePack)
+		fmt.Println("[client] api msgId = ", request.GetMsgID(), " is not FOUND!")
+		request.GetConnection().Send(NotFoundMessage)
 		return
 	}
 
@@ -38,5 +38,4 @@ func (mhd *MsgHandle) AddRouter(msgId uint32, router ziface.IRouter) {
 	}
 	//2 添加msg与api的绑定关系
 	mhd.Apis[msgId] = router
-	fmt.Println("Add api msgId = ", msgId)
 }

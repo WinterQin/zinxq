@@ -42,8 +42,8 @@ func NewConnection(conn *net.TCPConn, connid uint32, msghd ziface.IMessageHandle
 
 // private
 func (c *Connection) startReader() {
-	fmt.Println("Reader is running......")
-	defer fmt.Println("Reader is stopped, ConnID is ", c.ConnID, "RemoteAddr is ", c.Conn.RemoteAddr().String())
+	fmt.Println("[zinx] Reader is running......")
+	defer fmt.Println("[zinx] Reader is stopped, ConnID is ", c.ConnID, "RemoteAddr is ", c.Conn.RemoteAddr().String())
 	defer c.Stop()
 	mp := NewMsgPack()
 
@@ -53,9 +53,9 @@ func (c *Connection) startReader() {
 
 		_, err := io.ReadFull(c.GetTCPConnection(), HeadData)
 		if err != nil {
-			fmt.Println("read msg head error ", err)
 			break
 		}
+
 		msg, err := mp.Unpack(HeadData)
 		if err != nil {
 			fmt.Println("unpack error ", err)
@@ -67,7 +67,7 @@ func (c *Connection) startReader() {
 		if msg.GetMsgLen() > 0 {
 			data = make([]byte, msg.GetMsgLen())
 			if _, err := io.ReadFull(c.GetTCPConnection(), data); err != nil {
-				fmt.Println("read msg data error ", err)
+				fmt.Println("[zinx connection] read msg data error ", err)
 				continue
 			}
 		}
@@ -81,15 +81,15 @@ func (c *Connection) startReader() {
 }
 
 func (c *Connection) startWriter() {
-	fmt.Println("Writer is running......")
-	defer fmt.Println("Writer is stopped, ConnID is ", c.ConnID, "RemoteAddr is ", c.Conn.RemoteAddr().String())
+	fmt.Println("[zinx] Writer is running......")
+	defer fmt.Println("[zinx] Writer is stopped, ConnID is ", c.ConnID, "RemoteAddr is ", c.Conn.RemoteAddr().String())
 
 	for {
 		select {
 		case data := <-c.msgChan:
 			_, err := c.Conn.Write(data)
 			if err != nil {
-				fmt.Println("Send error:", err)
+				fmt.Println("[zinx connection startWriter] Send error:", err)
 			}
 		case <-c.ExitChan:
 			return
@@ -99,23 +99,26 @@ func (c *Connection) startWriter() {
 }
 func (c *Connection) Send(msg ziface.IMessage) error {
 	if c.isClosed {
-		return errors.New("connection closed")
+		return errors.New("[zinx connection send] connection closed")
 	}
 	mp := NewMsgPack()
-	data, err := mp.Pack(NewMessage())
-	_, err := c.Conn.Write(data)
+	data, err := mp.Pack(msg)
+	_, err = c.Conn.Write(data)
 	if err != nil {
-		fmt.Println("Send error:", err)
+		fmt.Println("pack error message id:", msg.GetMsgID())
+		return errors.New("pack error message")
 	}
+
+	c.msgChan <- data
+	return nil
 }
 
 // public
 // Start 启动链接
 func (c *Connection) Start() {
-	fmt.Println("connection start......    ConnID:", c.ConnID)
+	fmt.Println("[zinx start]connection start......    ConnID:", c.ConnID)
 	//启动读取goroutine
 	go c.startReader()
-	// TODO 启动写入goroutine业务
 	go c.startWriter()
 	for {
 		select {
@@ -127,7 +130,7 @@ func (c *Connection) Start() {
 
 // Stop 停止链接
 func (c *Connection) Stop() {
-	fmt.Println("connection stop......    ConnID:", c.ConnID)
+	fmt.Println("[zinx] connection stop......    ConnID:", c.ConnID)
 	if c.isClosed {
 		return
 	}

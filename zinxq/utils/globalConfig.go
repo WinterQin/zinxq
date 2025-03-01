@@ -2,7 +2,6 @@ package utils
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/winterqin/zinxq/ziface"
 	"io/ioutil"
 )
@@ -34,7 +33,7 @@ func (g *GlobalConfig) Reload() {
 		panic(err)
 	}
 	//将json数据解析到struct中
-	fmt.Printf("json :%s\n", data)
+	//fmt.Printf("json :%s\n", data)
 	err = json.Unmarshal(data, &Config)
 	if err != nil {
 		panic(err)
@@ -46,10 +45,10 @@ func init() {
 		TcpServer:        nil,
 		Host:             "127.0.0.1",
 		TcpPort:          8080,
-		Name:             "winterServer",
+		Name:             "Winter Server",
 		IPVersion:        "tcp4",
 		MaxPacketSize:    512,
 		MaxConnectionNum: 128,
 	}
-	//Config.Reload()
+	Config.Reload()
 }
