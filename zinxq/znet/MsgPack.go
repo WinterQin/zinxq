@@ -6,7 +6,6 @@ import (
 	"errors"
 	"github.com/winterqin/zinxq/utils"
 	"github.com/winterqin/zinxq/ziface"
-	"net/http"
 )
 
 type MsgPack struct {
@@ -45,7 +44,6 @@ func (mp *MsgPack) Unpack(binarydata []byte) (ziface.IMessage, error) {
 		return nil, err
 	}
 	msg.SetMsgLen(msglen)
-	http.NotFound()
 
 	//读msgID
 	if err := binary.Read(dataBuff, binary.LittleEndian, &msgid); err != nil {

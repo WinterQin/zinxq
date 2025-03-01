@@ -3,6 +3,7 @@ package znet
 import (
 	"errors"
 	"fmt"
+	"github.com/winterqin/zinxq/utils"
 	"github.com/winterqin/zinxq/ziface"
 	"io"
 	"net"
@@ -75,7 +76,12 @@ func (c *Connection) startReader() {
 
 		//得到当前客户端请求的Request数据
 		req := NewRequest(c, msg)
-		go c.Msghd.DoMsgHandler(req)
+
+		if utils.Config.WorkerPoolSize > 0 {
+			c.Msghd.SendMsgToTaskQueue(req)
+		} else {
+			go c.Msghd.DoMsgHandler(req)
+		}
 
 	}
 }

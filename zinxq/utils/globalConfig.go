@@ -19,6 +19,10 @@ type GlobalConfig struct {
 
 	MaxPacketSize    uint32 //都需数据包的最大值
 	MaxConnectionNum int    //当前服务器主机允许的最大链接个数
+	// 其他自定义的配置
+	WorkerPoolSize   uint32 //worker池大小
+	MaxWorkerTaskLen uint32 //worker对应任务的最大队列长度
+
 }
 
 /*
@@ -49,6 +53,8 @@ func init() {
 		IPVersion:        "tcp4",
 		MaxPacketSize:    512,
 		MaxConnectionNum: 128,
+		WorkerPoolSize:   10,
+		MaxWorkerTaskLen: 1024,
 	}
 	Config.Reload()
 }

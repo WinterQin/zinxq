@@ -37,6 +37,8 @@ func InitServer() ziface.IServer {
 }
 
 func (s *Server) Start() {
+	//0 启动worker工作池机制
+	s.Msghd.StartWorkerPool()
 
 	// 解析地址
 	addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", s.IP, s.Port))
