@@ -12,7 +12,7 @@ znet模块是zinx框架中网络相关功能的实现，所有网络相关的模
 实现：
 
 ```bash
-└── zinx
+└── zinxq
     ├── ziface
     │   └── IServer
     └── znet

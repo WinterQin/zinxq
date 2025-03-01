@@ -2,9 +2,9 @@ package znet
 
 import (
 	"fmt"
+	"github.com/winterqin/zinxq/utils"
+	"github.com/winterqin/zinxq/ziface"
 	"net"
-	"zinxq/zinx/utils"
-	"zinxq/zinx/ziface"
 )
 
 type Server struct {
@@ -12,7 +12,8 @@ type Server struct {
 	IPVersion string
 	IP        string
 	Port      int
-	Router    ziface.IRouter
+	// msg handler
+	Msghd ziface.IMessageHandle
 }
 
 func InitServer() ziface.IServer {
@@ -22,7 +23,7 @@ func InitServer() ziface.IServer {
 		IPVersion: utils.Config.IPVersion,
 		IP:        utils.Config.Host,
 		Port:      utils.Config.TcpPort,
-		Router:    nil,
+		Msghd:     NewMsgHandle(),
 	}
 	return server
 }
@@ -51,7 +52,7 @@ func (s *Server) Start() {
 		if err != nil {
 			fmt.Println("AcceptTCP err:", err)
 		}
-		delaConn := NewConnection(conn, cid, s.Router)
+		delaConn := NewConnection(conn, cid, s.Msghd)
 		cid++
 		go delaConn.Start()
 	}
@@ -70,7 +71,7 @@ func (s *Server) RunServer() {
 	select {}
 }
 
-func (s *Server) AddRouter(router ziface.IRouter) {
-	s.Router = router
+func (s *Server) AddRouter(msgId uint32, router ziface.IRouter) {
+	s.Msghd.AddRouter(msgId, router)
 	fmt.Println("AddRouter")
 }

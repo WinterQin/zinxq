@@ -15,5 +15,5 @@ type IConnection interface {
 	// GetRemoteAddr 获取远程客户端的IP和端口
 	GetRemoteAddr() net.Addr
 	// Send 发送数据到客户端
-	Send(data []byte)
+	Send(msg IMessage) error
 }

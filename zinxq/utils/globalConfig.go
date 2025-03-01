@@ -3,13 +3,13 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/winterqin/zinxq/ziface"
 	"io/ioutil"
-	"zinxq/zinx/ziface"
 )
 
 /*
 存储一切有关Zinx框架的全局参数，供其他模块使用
-一些参数也可以通过 用户根据 zinx.json来配置
+一些参数也可以通过 用户根据 zinxq.json来配置
 */
 type GlobalConfig struct {
 	TcpServer ziface.IServer //当前Zinx的全局Server对象
