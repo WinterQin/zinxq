@@ -16,4 +16,6 @@ type IConnection interface {
 	GetRemoteAddr() net.Addr
 	// Send 发送数据到客户端
 	Send(msg IMessage) error
+	// SendBuffMsg 直接将Message数据发送给远程的TCP客户端(有缓冲)
+	SendBuffMsg(msgId uint32, data []byte) error //添加带缓冲发送消息接口
 }

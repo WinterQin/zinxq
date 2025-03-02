@@ -2,7 +2,7 @@ package znet
 
 type Message struct {
 	msgLen uint32
-	data   []byte
+	Data   []byte
 	msgID  uint32
 }
 
@@ -10,7 +10,7 @@ var NotFoundMessage = NewMessage(404, []byte("Request ID Not Found"))
 var SuccessMessage = NewMessage(200, []byte("Success"))
 
 func NewMessage(msgID uint32, data []byte) *Message {
-	msg := &Message{data: data, msgID: msgID}
+	msg := &Message{Data: data, msgID: msgID}
 	msg.msgLen = uint32(len(data))
 	return msg
 }
@@ -24,7 +24,7 @@ func (m *Message) GetMsgLen() uint32 {
 }
 
 func (m *Message) GetData() []byte {
-	return m.data
+	return m.Data
 }
 
 func (m *Message) SetMsgID(id uint32) {
@@ -36,5 +36,5 @@ func (m *Message) SetMsgLen(msglen uint32) {
 }
 
 func (m *Message) SetData(data []byte) {
-	m.data = data
+	m.Data = data
 }

@@ -10,6 +10,8 @@ import (
 )
 
 type Connection struct {
+	// 当前conn属于哪个server
+	TcpServer ziface.IServer
 	//当前链接的socket
 	Conn *net.TCPConn
 
@@ -26,18 +28,23 @@ type Connection struct {
 	Msghd ziface.IMessageHandle
 	// msg channel
 	msgChan chan []byte
+	//有缓冲管道，用于读、写两个goroutine之间的消息通信
+	msgBuffChan chan []byte //定义channel成员
 }
 
 // NewConnection 初始化链接模块的方法
-func NewConnection(conn *net.TCPConn, connid uint32, msghd ziface.IMessageHandle) *Connection {
+func NewConnection(server ziface.IServer, conn *net.TCPConn, connid uint32, msghd ziface.IMessageHandle) *Connection {
 	c := &Connection{
-		Conn:     conn,
-		ConnID:   connid,
-		ExitChan: make(chan bool, 1),
-		isClosed: false,
-		Msghd:    msghd,
-		msgChan:  make(chan []byte),
+		TcpServer:   server,
+		Conn:        conn,
+		ConnID:      connid,
+		ExitChan:    make(chan bool, 1),
+		isClosed:    false,
+		Msghd:       msghd,
+		msgChan:     make(chan []byte),
+		msgBuffChan: make(chan []byte, utils.Config.MaxMsgChanLen),
 	}
+	c.TcpServer.GetConnMgr().AddConnection(c)
 	return c
 }
 
@@ -69,7 +76,7 @@ func (c *Connection) startReader() {
 			data = make([]byte, msg.GetMsgLen())
 			if _, err := io.ReadFull(c.GetTCPConnection(), data); err != nil {
 				fmt.Println("[zinx connection] read msg data error ", err)
-				continue
+				return
 			}
 		}
 		msg.SetData(data)
@@ -97,15 +104,48 @@ func (c *Connection) startWriter() {
 			if err != nil {
 				fmt.Println("[zinx connection startWriter] Send error:", err)
 			}
+			//针对有缓冲channel需要些的数据处理
+		case data, ok := <-c.msgBuffChan:
+			if ok {
+				//有数据要写给客户端
+				if _, err := c.Conn.Write(data); err != nil {
+					fmt.Println("Send Buff Data error:, ", err, " Conn Writer exit")
+					return
+				}
+			} else {
+				fmt.Println("msgBuffChan is Closed")
+				break
+
+			}
 		case <-c.ExitChan:
 			return
 		}
 	}
 
 }
+
+// SendBuffMsg 直接将Message数据发送给远程的TCP客户端(有缓冲)
+// 添加带缓冲发送消息接口
+func (c *Connection) SendBuffMsg(msgId uint32, data []byte) error {
+	if c.isClosed == true {
+		return errors.New("[zinx] Connection closed when send buff msg")
+	}
+	//将data封包，并且发送
+	dp := NewMsgPack()
+	msg, err := dp.Pack(NewMessage(msgId, data))
+	if err != nil {
+		fmt.Println("Pack error msg id = ", msgId)
+		return errors.New("Pack error msg ")
+	}
+
+	//写回客户端
+	c.msgBuffChan <- msg
+
+	return nil
+}
 func (c *Connection) Send(msg ziface.IMessage) error {
 	if c.isClosed {
-		return errors.New("[zinx connection send] connection closed")
+		return errors.New("[zinx] connection closed")
 	}
 	mp := NewMsgPack()
 	data, err := mp.Pack(msg)
@@ -126,6 +166,12 @@ func (c *Connection) Start() {
 	//启动读取goroutine
 	go c.startReader()
 	go c.startWriter()
+
+	//==================
+	//按照用户传递进来的创建连接时需要处理的业务，执行钩子方法
+	c.TcpServer.CallOnConnStart(c)
+	//==================
+
 	for {
 		select {
 		case <-c.ExitChan:
@@ -141,11 +187,18 @@ func (c *Connection) Stop() {
 		return
 	}
 	c.isClosed = true
-	select {
-	case c.ExitChan <- true:
-		c.Conn.Close()
-	}
-	close(c.ExitChan)
+	//==================
+	//如果用户注册了该链接的关闭回调业务，那么在此刻应该显示调用
+	c.TcpServer.CallOnConnStop(c)
+	//==================
+	
+	c.Conn.Close()
+	c.ExitChan <- true
+	//将链接从连接管理器中删除
+	c.TcpServer.GetConnMgr().RemoveConnection(c) //删除conn从ConnManager中
+	//关闭该链接全部管道
+	defer close(c.ExitChan)
+	defer close(c.msgChan)
 }
 
 // GetTCPConnection 获取当前链接绑定的socket的conn

@@ -22,7 +22,7 @@ type GlobalConfig struct {
 	// 其他自定义的配置
 	WorkerPoolSize   uint32 //worker池大小
 	MaxWorkerTaskLen uint32 //worker对应任务的最大队列长度
-
+	MaxMsgChanLen    int
 }
 
 /*
